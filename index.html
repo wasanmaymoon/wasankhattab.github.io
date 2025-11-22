@@ -1,77 +1,202 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-  <meta charset="utf-8" />
+    <meta charset="utf-8" />
+    <title>Lab 3 - Extra Features (with Arabic Comments)</title>
 
-  <!-- Give the page a title -->
-  <title>Ramallah Waste Containers</title>
+    <!-- استدعاء مكتبة Leaflet الأساسية -->
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-  <!-- Add a link to the Leaflet CSS library so you can reference it for styling your map -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; width: 100%; }
+        body { margin: 0; }
 
-  <!-- All the CSS code goes inside the style tags below -->
-  <style>
-    /* style the body */
-    body {
-      margin: 0px;
-      height: 100%;
-      width: 100%;
-    }
-
-    /* style the map */
-    #map {
-      position: absolute;
-      width: 100%;
-      top: 0px;
-      bottom: 0;
-    }
-  </style>
+        /* تصميم عام لصناديق الأدوات */
+        .leaflet-control {
+            background: white;
+            padding: 5px;
+            border-radius: 4px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            font-size: 12px;
+        }
+        .north-arrow { font-size: 16px; font-weight: bold; text-align: center; }
+    </style>
 </head>
-
 <body>
-  <!-- the map -->
-  <div id="map"></div>
 
-  <!-- Add a link to the Leaflet JavaScript library so you can reference it for building your map -->
-  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+<div id="map"></div>
 
-  <!-- Add a link to the jQuery JavaScript library so you can leverage ajax methods to load your data -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<!-- مكتبات Leaflet و jQuery -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-  <!-- All JavaScript goes inside the script tags below -->
-  <script>
-    // define map options
-    const mapOptions = {
-      zoomSnap: 0.5,  // this allows fractional zooming
-      center: [31.9045, 35.2045], // center the map on the coordinates for Ramallah
-      zoom: 17.5, // set the initial zoom
-    };
+<script>
 
-    // define the map with the options above
-    const map = L.map("map", mapOptions);
+// ===================================================================
+// ➊ إنشاء الخريطة – هاي خطوة أساسية مشتركة في كل اللابات
+// ===================================================================
+var map = L.map('map').setView([31.9, 35.2], 12);
 
-// add a base map to the map
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  subdomains: 'abcd',
-  maxZoom: 20
+
+// ===================================================================
+// ➋ إضافة طبقات الأساس (الوضع النهاري + الوضع الليلي)
+// ===================================================================
+
+// ✔ الوضع النهاري (المطلوب في الواجب)
+var day = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+// ✔ الوضع الليلي (ميزة إضافية مطلوبة: Night Mode)
+var night = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+
+
+// ===================================================================
+// ➌ Layer Control 
+//    (يسمح بالتبديل بين Day/Night وإظهار/إخفاء الطبقات الأخرى)
+// ===================================================================
+var baseLayers = { 
+    "الوضع النهاري Day": day, 
+    "الوضع الليلي Night": night 
+};
+
+var overlays = {};  // رح نضيف الطبقات بعد تحميلها
+var layerControl = L.control.layers(baseLayers, overlays).addTo(map);
+
+
+// ===================================================================
+// ➍ مقياس الرسم (Scale Bar)
+//    ✔ ميزة مطلوبة بالواجب
+// ===================================================================
+L.control.scale({
+    metric: true,  // يظهر بالمتر والكيلومتر
 }).addTo(map);
 
 
-// use jquery to load GeoJSON data
+// ===================================================================
+// ➎ إضافة "إشارة الشمال" – North Arrow
+//    ✔ ميزة مطلوبة بالواجب
+// ===================================================================
+var north = L.control({position: 'topright'});
+north.onAdd = function() {
+    var div = L.DomUtil.create('div', 'leaflet-control north-arrow');
+    div.innerHTML = "N<br>&uarr;"; // N والسهم للأعلى
+    return div;
+};
+north.addTo(map);
 
 
-    $.getJSON("RamallahZones.json", function(RZ) {
-      L.geoJson(RZ).addTo(map);
+// ===================================================================
+// ➏ إضافة ساعة Digital Clock على الخريطة
+//    ✔ ميزة مطلوبة بالواجب
+// ===================================================================
+var clock = L.control({position: 'bottomleft'});
+clock.onAdd = function() {
+    var div = L.DomUtil.create('div', 'leaflet-control');
+
+    function updateClock() {
+        div.innerHTML = new Date().toLocaleTimeString(); // وقت حي يتحدث كل ثانية
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    return div;
+};
+clock.addTo(map);
+
+
+// ===================================================================
+// ➐ إظهار إحداثيات مؤشر الفأرة
+//    ✔ ميزة إضافية اخترناها إحنا
+// ===================================================================
+var coords = L.control({position: 'bottomright'});
+coords.onAdd = function() {
+    var div = L.DomUtil.create('div', 'leaflet-control');
+    div.innerHTML = "Move mouse";
+    
+    map.on('mousemove', function(e) {
+        div.innerHTML =
+            "Lat: " + e.latlng.lat.toFixed(4) +
+            ", Lng: " + e.latlng.lng.toFixed(4);
     });
 
-    $.getJSON("wasteContainer.json", function(WC) {
-      L.geoJson(WC).addTo(map);
-    });
+    return div;
+};
+coords.addTo(map);
 
-  </script>
+
+// ===================================================================
+// ➑ زر "Zoom to Zones"
+//    ✔ ميزة إضافية اخترناها إحنا
+//    – يرجع الخريطة لحدود المناطق الصفراء
+// ===================================================================
+var zoomZones = L.control({position: 'topleft'});
+zoomZones.onAdd = function() {
+    var div = L.DomUtil.create('div', 'leaflet-control');
+    div.innerHTML = "<button>Zoom Zones</button>";
+    div.style.cursor = "pointer";
+
+    div.onclick = function() {
+        if (zonesLayer) {
+            map.fitBounds(zonesLayer.getBounds());
+        }
+    };
+
+    return div;
+};
+zoomZones.addTo(map);
+
+
+// ===================================================================
+// ➒ تحميل طبقة المناطق (RamallahZones.json)
+//    ✔ مطلوب في lab 2 + lab 3
+//    – مناطق صفراء + fitBounds + Layer control
+// ===================================================================
+var zonesLayer;
+
+$.getJSON("RamallahZones.json", function(data) {
+
+    zonesLayer = L.geoJSON(data, {
+        style: {
+            color: "yellow",
+            fillColor: "yellow",
+            fillOpacity: 0.3
+        }
+    }).addTo(map);
+
+    // تقريب على حدود المناطق كلها
+    map.fitBounds(zonesLayer.getBounds());
+
+    // إضافة الطبقة لقائمة الطبقات
+    layerControl.addOverlay(zonesLayer, "Zones");
+});
+
+
+// ===================================================================
+// ➓ تحميل طبقة الحاويات (wasteContainer.json)
+//    ✔ نقاط برتقالية – مطلوب في Lab 2 + 3
+// ===================================================================
+var wasteLayer;
+
+$.getJSON("wasteContainer.json", function(data) {
+
+    wasteLayer = L.geoJSON(data, {
+        pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, {
+                radius: 5,
+                fillColor:"orange",
+                color:"orange",
+                fillOpacity:0.9
+            });
+        }
+    }).addTo(map);
+
+    // إضافة الطبقة لقائمة الطبقات
+    layerControl.addOverlay(wasteLayer, "Waste Containers");
+});
+
+
+</script>
+
 </body>
-
 </html>
